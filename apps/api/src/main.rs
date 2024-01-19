@@ -1,10 +1,7 @@
-#[macro_use]
-extern crate rocket;
-
 #[cfg(test)]
 mod tests;
-use rocket::form::FromForm;
-use rocket::{get, post, serde::json::Json};
+use rocket::Build;
+use rocket::{get, serde::json::Json};
 use rocket_okapi::okapi::schemars;
 use rocket_okapi::okapi::schemars::JsonSchema;
 use rocket_okapi::settings::UrlObject;
@@ -39,15 +36,16 @@ fn get_all_users() -> Json<Vec<User>> {
     }])
 }
 
+/// # test
+#[openapi(tag = "test")]
 #[get("/<name>/<age>")]
 fn hello(name: &str, age: u8) -> String {
     format!("Hello, {} year old named {}!", age, name)
 }
 
-#[rocket::main]
-async fn main() {
-    let launch_result = rocket::build()
-        .mount("/", openapi_get_routes![get_all_users])
+fn rocket() -> rocket::Rocket<Build> {
+    rocket::build()
+        .mount("/", openapi_get_routes![get_all_users, hello])
         .mount(
             "/swagger-ui/",
             make_swagger_ui(&SwaggerUIConfig {
@@ -70,8 +68,11 @@ async fn main() {
                 ..Default::default()
             }),
         )
-        .launch()
-        .await;
+}
+
+#[rocket::main]
+async fn main() {
+    let launch_result = rocket().launch().await;
     match launch_result {
         Ok(_) => println!("Rocket shut down gracefully."),
         Err(err) => println!("Rocket had an error: {}", err),
